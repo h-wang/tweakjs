@@ -1,7 +1,11 @@
 (function (w, d) {
   var t = {
+    debug: false,
+    setDebug: function() {
+      this.debug = w.tweakDebug || this.debug
+    },
     log: function (data) {
-      console.log(data)
+      if (this.debug) console.log(data)
     },
     getHandler: function (action) {
       return typeof t.handlers[action] === 'function' ? t.handlers[action] : null
@@ -10,8 +14,9 @@
       return d.head || d.getElementsByTagName('head')[0]
     },
     init: function (event) {
-      // this.log(tweaks)
-      this.apply(tweaks)
+      this.setDebug()
+      this.log('tweakjs initializing ...')
+      this.loader.loadGlobal().loadUri()
     },
     apply: function (tweaks) {
       tweaks.forEach(t.applyTweak)
@@ -106,9 +111,39 @@
           eval(tweak.value)
         }
       }
+    },
+    loader: {
+      load: function(tweaks) {
+        t.apply(tweaks)
+      },
+      loadGlobal: function() {
+        if (w.tweaks) {
+          t.setDebug()
+          t.apply(w.tweaks)
+        }
+        return this;
+      },
+      loadUri: function(){
+        if (t.debug) {
+          let uri = this.getUrlParameter('tweaksUrl'), s = d.createElement('script')
+          if (uri) {
+            s.type = 'text/javascript'
+            s.onload = w.tweakjs.loader.loadGlobal
+            s.async = true
+            s.src = uri
+            t.getDocumentHead().appendChild(s)
+          }
+        }
+      },
+      getUrlParameter: function(name) {
+        name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]')
+        let regex = new RegExp('[\\?&]' + name + '=([^&#]*)')
+        let results = regex.exec(location.search)
+        return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '))
+      }
     }
   }
-
+  w.tweakjs = t;
   d.addEventListener('DOMContentLoaded', t.init.bind(t));
 
 })(window, document);
